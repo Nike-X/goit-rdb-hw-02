@@ -1,5 +1,3 @@
-%%writefile hw2_schema.sql
-
 -- Set the time zone to UTC and drop previously created tables
 
 SET TIME ZONE 'UTC';
