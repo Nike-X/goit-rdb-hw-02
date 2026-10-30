@@ -1,0 +1,96 @@
+// Use DBML to define your database structure
+// Docs: https://dbml.dbdiagram.io/docs
+
+Table hw2_users {
+  user_id integer [primary key]
+  age integer [not null]
+  gender varchar(1)
+  occupation varchar(100)
+  zip_code varchar(20)
+}
+
+Table hw2_movies {
+  movie_id integer [primary key]
+  movie_title varchar(255) [not null]
+  release_date date
+  imdb_url text
+}
+
+Table hw2_ratings {
+  user_id integer [not null]
+  movie_id integer [not null]
+  rating integer [not null, check: `rating BETWEEN 1 AND 5`]
+  rating_ts timestamptz [not null]
+
+  indexes {
+    (user_id, movie_id) [pk]
+    (user_id, rating_ts) [name: 'hw2_idx_ratings_user_time']
+  }
+}
+
+Table hw2_genres {
+  genre_id integer [pk]
+  genre_name varchar(100) [not null, unique]
+}
+
+Table hw2_movie_genres {
+  movie_id integer [not null]
+  genre_id integer [not null]
+
+  indexes {
+    (movie_id, genre_id) [pk]
+  }
+}
+
+Table hw2_user_features_offline {
+  user_id integer
+  ratings_count integer [not null, check: `ratings_count >= 0`]
+  avg_rating numeric(4,2) [check: `avg_rating BETWEEN 1 AND 5`]
+  valid_from timestamptz [not null]
+  valid_to timestamptz
+
+  indexes {
+    (user_id, valid_from) [pk]
+  }
+
+  checks {
+  `valid_to IS NULL OR valid_to > valid_from`
+  }
+}
+
+Table hw2_user_features_online {
+  user_id integer [pk]
+  ratings_count integer [not null, check: `ratings_count >= 0`]
+  avg_rating numeric(4,2) [check: `avg_rating BETWEEN 1 AND 5`]
+  feature_ts timestamptz [not null]
+  updated_at timestamptz [not null, default: `now()`]
+}
+
+Table hw2_training_events {
+  event_id bigint [pk, increment]
+  user_id integer [not null]
+  movie_id integer [not null]
+  prediction_ts timestamptz [not null]
+  label_horizon_end timestamptz [not null]
+  target_rating integer [not null, check: `target_rating BETWEEN 1 AND 5`]
+
+  checks {
+  `label_horizon_end > prediction_ts`
+}
+}
+
+Ref: hw2_ratings.user_id > hw2_users.user_id
+
+Ref: hw2_ratings.movie_id > hw2_movies.movie_id
+
+Ref: hw2_movie_genres.movie_id > hw2_movies.movie_id
+
+Ref: hw2_movie_genres.genre_id > hw2_genres.genre_id
+
+Ref: hw2_user_features_offline.user_id > hw2_users.user_id
+
+Ref: hw2_users.user_id - hw2_user_features_online.user_id
+
+Ref: hw2_training_events.user_id > hw2_users.user_id
+
+Ref: hw2_training_events.movie_id > hw2_movies.movie_id
